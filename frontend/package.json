@@ -1,0 +1,14 @@
+{
+  "name": "figma-ai-code-generator-plugin",
+  "version": "1.0.0",
+  "description": "Figma plugin for AI-powered code generation",
+  "main": "code.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.90.0",
+    "typescript": "^5.3.3"
+  }
+}

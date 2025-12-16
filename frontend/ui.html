@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>AI Code Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .secondary-btn {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .status.success {
+            background: rgba(72, 187, 120, 0.3);
+            border: 1px solid rgba(72, 187, 120, 0.5);
+        }
+
+        .status.error {
+            background: rgba(245, 101, 101, 0.3);
+            border: 1px solid rgba(245, 101, 101, 0.5);
+        }
+
+        .status.info {
+            background: rgba(66, 153, 225, 0.3);
+            border: 1px solid rgba(66, 153, 225, 0.5);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .json-preview {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 0 5px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        .step.active {
+            background: rgba(255, 255, 255, 0.3);
+            font-weight: 600;
+        }
+
+        .step.complete {
+            background: rgba(72, 187, 120, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🚀 AI Code Generator</h1>
+
+        <div class="step-indicator">
+            <div class="step" id="step1">1. Extract</div>
+            <div class="step" id="step2">2. Process</div>
+            <div class="step" id="step3">3. Generate</div>
+            <div class="step" id="step4">4. Deploy</div>
+        </div>
+
+        <div class="card">
+            <h2 style="font-size: 18px; margin-bottom: 15px;">Configuration</h2>
+
+            <div class="input-group">
+                <label>Backend API URL</label>
+                <input type="text" id="apiUrl" placeholder="http://localhost:5050" value="http://localhost:5050">
+            </div>
+
+            <div class="input-group">
+                <label>Target Framework</label>
+                <select id="framework">
+                    <option value="nextjs">Next.js</option>
+                    <option value="react">React</option>
+                    <option value="vue">Vue.js</option>
+                    <option value="angular">Angular</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Repository URL</label>
+                <input type="text" id="repoUrl" placeholder="https://github.com/username/repo">
+            </div>
+
+            <div class="input-group">
+                <label>GitHub Token</label>
+                <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxxx">
+            </div>
+        </div>
+
+        <div class="card">
+            <button id="extractBtn" onclick="extractDesign()">
+                Extract Design Data
+            </button>
+
+            <button id="generateBtn" class="secondary-btn hidden" onclick="generateCode()">
+                Generate Code with AI
+            </button>
+
+            <button id="commitBtn" class="secondary-btn hidden" onclick="commitToRepo()">
+                Commit to Repository
+            </button>
+
+            <div id="status" class="status hidden"></div>
+            <div id="jsonPreview" class="json-preview hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        let extractedData = null;
+        let generatedCode = null;
+
+        // Update step indicator
+        function updateStep(stepNum) {
+            for (let i = 1; i <= 4; i++) {
+                const step = document.getElementById(`step${i}`);
+                step.classList.remove('active', 'complete');
+                if (i < stepNum) step.classList.add('complete');
+                if (i === stepNum) step.classList.add('active');
+            }
+        }
+
+        // Show status message
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.classList.remove('hidden');
+        }
+
+        // Extract design data
+        function extractDesign() {
+            updateStep(1);
+            showStatus('Extracting design data...', 'info');
+
+            const btn = document.getElementById('extractBtn');
+            btn.disabled = true;
+            btn.innerHTML = 'Extracting...<span class="loading"></span>';
+
+            parent.postMessage({ pluginMessage: { type: 'extract-design' } }, '*');
+        }
+
+        // Generate code with AI
+        async function generateCode() {
+            updateStep(3);
+            showStatus('Generating code with AI...', 'info');
+
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+            btn.innerHTML = 'Generating...<span class="loading"></span>';
+
+            const apiUrl = document.getElementById('apiUrl').value;
+            const framework = document.getElementById('framework').value;
+
+            try {
+                const response = await fetch(`${apiUrl}/api/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        designData: extractedData,
+                        framework: framework,
+                    }),
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    generatedCode = result.code;
+                    showStatus('Code generated successfully!', 'success');
+                    document.getElementById('commitBtn').classList.remove('hidden');
+                    updateStep(4);
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                showStatus(`Generation failed: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Generate Code with AI';
+            }
+        }
+
+        // Commit to repository
+        async function commitToRepo() {
+            showStatus('Committing to repository...', 'info');
+
+            const btn = document.getElementById('commitBtn');
+            btn.disabled = true;
+            btn.innerHTML = 'Committing...<span class="loading"></span>';
+
+            const apiUrl = document.getElementById('apiUrl').value;
+            const repoUrl = document.getElementById('repoUrl').value;
+            const githubToken = document.getElementById('githubToken').value;
+
+            try {
+                const response = await fetch(`${apiUrl}/api/commit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        code: generatedCode,
+                        repoUrl: repoUrl,
+                        githubToken: githubToken,
+                        frameName: extractedData.metadata.frameName,
+                    }),
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showStatus(`✅ Committed successfully! View at: ${result.commitUrl}`, 'success');
+                    setTimeout(() => {
+                        parent.postMessage({ pluginMessage: { type: 'close-plugin' } }, '*');
+                    }, 3000);
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                showStatus(`Commit failed: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Commit to Repository';
+            }
+        }
+
+        // Listen for messages from plugin
+        window.onmessage = (event) => {
+            const msg = event.data.pluginMessage;
+
+            if (msg.type === 'design-extracted') {
+                extractedData = msg.data;
+                updateStep(2);
+                showStatus('Design extracted successfully!', 'success');
+
+                // Show preview
+                const preview = document.getElementById('jsonPreview');
+                preview.textContent = JSON.stringify(msg.data, null, 2);
+                preview.classList.remove('hidden');
+
+                // Enable generate button
+                document.getElementById('generateBtn').classList.remove('hidden');
+                document.getElementById('extractBtn').disabled = false;
+                document.getElementById('extractBtn').innerHTML = 'Extract Design Data';
+            }
+
+            if (msg.type === 'error') {
+                showStatus(msg.message, 'error');
+                document.getElementById('extractBtn').disabled = false;
+                document.getElementById('extractBtn').innerHTML = 'Extract Design Data';
+            }
+        };
+    </script>
+</body>
+
+</html>
