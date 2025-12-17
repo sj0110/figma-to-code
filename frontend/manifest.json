@@ -2,7 +2,7 @@
     "name": "AI Code Generator",
     "id": "figma-ai-code-generator",
     "api": "1.0.0",
-    "main": "code.js",
+    "main": "dist/code.js",
     "ui": "ui.html",
     "capabilities": [],
     "enableProposedApi": false,
@@ -11,7 +11,8 @@
     ],
     "networkAccess": {
         "allowedDomains": [
-            "*"
-        ]
+            "https://figma-to-code-backend.vercel.app"
+        ],
+        "reasoning": "This plugin communicates with a backend API server for AI-powered code generation and GitHub repository integration."
     }
 }

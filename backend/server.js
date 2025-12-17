@@ -155,7 +155,7 @@ app.post('/api/generate', async (req, res) => {
         const prompt = generatePrompt(designData, framework);
 
         // Call Gemini AI
-        const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const generatedCode = response.text();
