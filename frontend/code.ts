@@ -15,45 +15,68 @@ interface EnhancedNodeData {
     children?: EnhancedNodeData[];
 }
 
+// interface GeometryData {
+//     x: number;
+//     y: number;
+//     width: number;
+//     height: number;
+//     rotation?: number;
+//     absoluteTransform?: Transform;
+//     relativeTransform?: Transform;
+// }
+
 interface GeometryData {
-    x: number;
-    y: number;
     width: number;
     height: number;
     rotation?: number;
-    absoluteTransform?: Transform;
-    relativeTransform?: Transform;
+    // Removed absoluteTransform & relativeTransform (Huge token savers)
 }
 
+// interface StylingData {
+//     fills?: ReadonlyArray<Paint>;
+//     strokes?: ReadonlyArray<Paint>;
+//     strokeWeight?: number;
+//     strokeAlign?: string;
+//     cornerRadius?: number | PluginAPI['mixed'];
+//     effects?: ReadonlyArray<Effect>;
+//     opacity?: number;
+//     blendMode?: BlendMode;
+// }
+
 interface StylingData {
-    fills?: ReadonlyArray<Paint>;
-    strokes?: ReadonlyArray<Paint>;
+    fill?: string; // Simplified from ReadonlyArray<Paint>
+    stroke?: string;
     strokeWeight?: number;
-    strokeAlign?: string;
-    cornerRadius?: number | PluginAPI['mixed'];
-    effects?: ReadonlyArray<Effect>;
+    radius?: number | PluginAPI['mixed'];
+    shadow?: string; // Simplified Effect
     opacity?: number;
-    blendMode?: BlendMode;
 }
 
 type LayoutAlign = 'MIN' | 'CENTER' | 'MAX' | 'STRETCH' | 'INHERIT';
-interface LayoutData {
-    layoutMode?: 'NONE' | 'HORIZONTAL' | 'VERTICAL' | 'GRID';
-    layoutAlign?: LayoutAlign;
-    layoutGrow?: number;
-    layoutSizingHorizontal?: 'FIXED' | 'HUG' | 'FILL';
-    layoutSizingVertical?: 'FIXED' | 'HUG' | 'FILL';
-    paddingTop?: number;
-    paddingRight?: number;
-    paddingBottom?: number;
-    paddingLeft?: number;
-    itemSpacing?: number;
-    counterAxisSpacing?: number;
-    primaryAxisAlignItems?: 'MIN' | 'CENTER' | 'MAX' | 'SPACE_BETWEEN';
-    counterAxisAlignItems?: 'MIN' | 'CENTER' | 'MAX' | 'BASELINE';
-    constraints?: Constraints;
-}
+// interface LayoutData {
+//     layoutMode?: 'NONE' | 'HORIZONTAL' | 'VERTICAL' | 'GRID';
+//     layoutAlign?: LayoutAlign;
+//     layoutGrow?: number;
+//     layoutSizingHorizontal?: 'FIXED' | 'HUG' | 'FILL';
+//     layoutSizingVertical?: 'FIXED' | 'HUG' | 'FILL';
+//     paddingTop?: number;
+//     paddingRight?: number;
+//     paddingBottom?: number;
+//     paddingLeft?: number;
+//     itemSpacing?: number;
+//     counterAxisSpacing?: number;
+//     primaryAxisAlignItems?: 'MIN' | 'CENTER' | 'MAX' | 'SPACE_BETWEEN';
+//     counterAxisAlignItems?: 'MIN' | 'CENTER' | 'MAX' | 'BASELINE';
+//     constraints?: Constraints;
+// }
 
+interface LayoutData {
+    mode?: 'HORIZONTAL' | 'VERTICAL' | 'GRID';
+    alignPrimary?: string;
+    alignCounter?: string;
+    gap?: number;
+    padding?: { t: number; r: number; b: number; l: number }; // Shorthand keys
+}
 interface ContentData {
     text?: string;
     characters?: string;
@@ -101,50 +124,134 @@ function extractNodeData(node: SceneNode): EnhancedNodeData {
     return baseData;
 }
 
+// function extractGeometry(node: SceneNode): GeometryData {
+//     return {
+//         x: 'x' in node ? node.x : 0,
+//         y: 'y' in node ? node.y : 0,
+//         width: 'width' in node ? node.width : 0,
+//         height: 'height' in node ? node.height : 0,
+//         rotation: 'rotation' in node ? node.rotation : undefined,
+//         absoluteTransform: 'absoluteTransform' in node ? node.absoluteTransform : undefined,
+//         relativeTransform: 'relativeTransform' in node ? node.relativeTransform : undefined,
+//     };
+// }
+
 function extractGeometry(node: SceneNode): GeometryData {
     return {
-        x: 'x' in node ? node.x : 0,
-        y: 'y' in node ? node.y : 0,
-        width: 'width' in node ? node.width : 0,
-        height: 'height' in node ? node.height : 0,
-        rotation: 'rotation' in node ? node.rotation : undefined,
-        absoluteTransform: 'absoluteTransform' in node ? node.absoluteTransform : undefined,
-        relativeTransform: 'relativeTransform' in node ? node.relativeTransform : undefined,
+        // Round to 2 decimals to save characters (e.g., 100.55 instead of 100.553281)
+        width: 'width' in node ? Number(node.width.toFixed(2)) : 0,
+        height: 'height' in node ? Number(node.height.toFixed(2)) : 0,
+        rotation: 'rotation' in node && node.rotation !== 0 ? Number(node.rotation.toFixed(2)) : undefined,
     };
 }
+
+// function extractStyling(node: SceneNode): StylingData {
+//     const styling: StylingData = {};
+
+//     if ('fills' in node) styling.fills = node.fills as ReadonlyArray<Paint>;
+//     if ('strokes' in node) styling.strokes = node.strokes as ReadonlyArray<Paint>;
+//     if ('strokeWeight' in node && typeof node.strokeWeight === 'number') styling.strokeWeight = node.strokeWeight;
+//     if ('strokeAlign' in node) styling.strokeAlign = node.strokeAlign;
+//     if ('cornerRadius' in node) styling.cornerRadius = node.cornerRadius;
+//     if ('effects' in node) styling.effects = node.effects;
+//     if ('opacity' in node) styling.opacity = node.opacity;
+//     if ('blendMode' in node) styling.blendMode = node.blendMode;
+
+//     return styling;
+// }
 
 function extractStyling(node: SceneNode): StylingData {
     const styling: StylingData = {};
 
-    if ('fills' in node) styling.fills = node.fills as ReadonlyArray<Paint>;
-    if ('strokes' in node) styling.strokes = node.strokes as ReadonlyArray<Paint>;
-    if ('strokeWeight' in node && typeof node.strokeWeight === 'number') styling.strokeWeight = node.strokeWeight;
-    if ('strokeAlign' in node) styling.strokeAlign = node.strokeAlign;
-    if ('cornerRadius' in node) styling.cornerRadius = node.cornerRadius;
-    if ('effects' in node) styling.effects = node.effects;
-    if ('opacity' in node) styling.opacity = node.opacity;
-    if ('blendMode' in node) styling.blendMode = node.blendMode;
+    // 1. Simplify Fills (Get the first visible solid color)
+    if ('fills' in node && Array.isArray(node.fills)) {
+        const solidFill = node.fills.find((paint) => paint.type === 'SOLID' && paint.visible !== false);
+        if (solidFill) {
+            const { r, g, b } = solidFill.color;
+            const a = solidFill.opacity ?? 1;
+            styling.fill = a < 1 
+                ? `rgba(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}, ${a.toFixed(2)})`
+                : rgbToHex(r, g, b);
+        }
+    }
+
+    // 2. Simplify Strokes
+    if ('strokes' in node && Array.isArray(node.strokes) && node.strokes.length > 0) {
+        const solidStroke = node.strokes.find((paint) => paint.type === 'SOLID' && paint.visible !== false);
+        if (solidStroke) {
+            const { r, g, b } = solidStroke.color;
+            styling.stroke = rgbToHex(r, g, b);
+        }
+        if ('strokeWeight' in node && typeof node.strokeWeight === 'number') {
+            styling.strokeWeight = node.strokeWeight;
+        }
+    }
+
+    // 3. Simplify Radius
+    if ('cornerRadius' in node && typeof node.cornerRadius === 'number' && node.cornerRadius > 0) {
+        styling.radius = node.cornerRadius;
+    }
+
+    // 4. Simplify Shadows (Just grab the first drop shadow)
+    if ('effects' in node && Array.isArray(node.effects)) {
+        const shadow = node.effects.find((e) => e.type === 'DROP_SHADOW' && e.visible !== false);
+        if (shadow) {
+            styling.shadow = 'true'; // Often we just need to know if it exists for Tailwind 'shadow-md'
+        }
+    }
+
+    // 5. Opacity (Only if not 1)
+    if ('opacity' in node && node.opacity < 1) {
+        styling.opacity = Number(node.opacity.toFixed(2));
+    }
 
     return styling;
 }
 
+// function extractLayout(node: SceneNode): LayoutData {
+//     const layout: LayoutData = {};
+
+//     if ('layoutMode' in node) layout.layoutMode = node.layoutMode;
+//     if ('layoutAlign' in node) layout.layoutAlign = node.layoutAlign;
+//     if ('layoutGrow' in node) layout.layoutGrow = node.layoutGrow;
+//     if ('layoutSizingHorizontal' in node) layout.layoutSizingHorizontal = node.layoutSizingHorizontal;
+//     if ('layoutSizingVertical' in node) layout.layoutSizingVertical = node.layoutSizingVertical;
+//     if ('paddingTop' in node) layout.paddingTop = node.paddingTop;
+//     if ('paddingRight' in node) layout.paddingRight = node.paddingRight;
+//     if ('paddingBottom' in node) layout.paddingBottom = node.paddingBottom;
+//     if ('paddingLeft' in node) layout.paddingLeft = node.paddingLeft;
+//     if ('itemSpacing' in node) layout.itemSpacing = node.itemSpacing;
+//     if ('counterAxisSpacing' in node && node.counterAxisSpacing !== null) layout.counterAxisSpacing = node.counterAxisSpacing;
+//     if ('primaryAxisAlignItems' in node) layout.primaryAxisAlignItems = node.primaryAxisAlignItems;
+//     if ('counterAxisAlignItems' in node) layout.counterAxisAlignItems = node.counterAxisAlignItems;
+//     if ('constraints' in node) layout.constraints = node.constraints;
+
+//     return layout;
+// }
+
 function extractLayout(node: SceneNode): LayoutData {
     const layout: LayoutData = {};
 
-    if ('layoutMode' in node) layout.layoutMode = node.layoutMode;
-    if ('layoutAlign' in node) layout.layoutAlign = node.layoutAlign;
-    if ('layoutGrow' in node) layout.layoutGrow = node.layoutGrow;
-    if ('layoutSizingHorizontal' in node) layout.layoutSizingHorizontal = node.layoutSizingHorizontal;
-    if ('layoutSizingVertical' in node) layout.layoutSizingVertical = node.layoutSizingVertical;
-    if ('paddingTop' in node) layout.paddingTop = node.paddingTop;
-    if ('paddingRight' in node) layout.paddingRight = node.paddingRight;
-    if ('paddingBottom' in node) layout.paddingBottom = node.paddingBottom;
-    if ('paddingLeft' in node) layout.paddingLeft = node.paddingLeft;
-    if ('itemSpacing' in node) layout.itemSpacing = node.itemSpacing;
-    if ('counterAxisSpacing' in node && node.counterAxisSpacing !== null) layout.counterAxisSpacing = node.counterAxisSpacing;
-    if ('primaryAxisAlignItems' in node) layout.primaryAxisAlignItems = node.primaryAxisAlignItems;
-    if ('counterAxisAlignItems' in node) layout.counterAxisAlignItems = node.counterAxisAlignItems;
-    if ('constraints' in node) layout.constraints = node.constraints;
+    // Only extract layout props if Auto Layout is actually ON
+    if ('layoutMode' in node && node.layoutMode !== 'NONE') {
+        layout.mode = node.layoutMode;
+        
+        // Simplify alignment strings (e.g., "MIN" -> "start")
+        layout.alignPrimary = node.primaryAxisAlignItems;
+        layout.alignCounter = node.counterAxisAlignItems;
+        
+        if (node.itemSpacing > 0) layout.gap = node.itemSpacing;
+
+        // Simplify Padding: Only add if there is actual padding
+        if (node.paddingTop > 0 || node.paddingRight > 0 || node.paddingBottom > 0 || node.paddingLeft > 0) {
+            layout.padding = {
+                t: node.paddingTop,
+                r: node.paddingRight,
+                b: node.paddingBottom,
+                l: node.paddingLeft
+            };
+        }
+    }
 
     return layout;
 }
@@ -248,10 +355,11 @@ function extractColorPalette(node: SceneNode): Record<string, string> {
 }
 
 function rgbToHex(r: number, g: number, b: number): string {
-    // If you get a TS error here, ensure your tsconfig.json has "es2017" or later in the "lib" array.
-    return '#' + [r, g, b]
-        .map(x => Math.round(x * 255).toString(16).padStart(2, '0'))
-        .join('');
+    const toHex = (value: number) => {
+        const hex = Math.round(value * 255).toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+    };
+    return '#' + toHex(r) + toHex(g) + toHex(b);
 }
 
 // Extract typography system
