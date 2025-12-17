@@ -44,7 +44,9 @@ const Project = mongoose.model('Project', ProjectSchema);
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
+const flashModel = genAI.getGenerativeModel({
+  model: 'gemini-2.5-flash',
+});
 // Helper Functions
 function parseRepoUrl(repoUrl) {
     const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
@@ -146,6 +148,27 @@ app.post('/api/extract', async (req, res) => {
     }
 });
 
+
+async function generateWithRetry(model, prompt, maxRetries = 4) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await model.generateContent(prompt);
+    } catch (err) {
+      const isOverload =
+        err.status === 503 ||
+        err.message?.includes('503');
+
+      if (!isOverload || attempt === maxRetries) {
+        throw err;
+      }
+
+      const wait = 600 * attempt + Math.random() * 400;
+      console.warn(`⚠️ Gemini overloaded. Retry ${attempt} in ${wait}ms`);
+      await new Promise(r => setTimeout(r, wait));
+    }
+  }
+}
+
 // Generate code with AI
 app.post('/api/generate', async (req, res) => {
     try {
@@ -158,9 +181,14 @@ app.post('/api/generate', async (req, res) => {
         // Generate prompt
         const prompt = generatePrompt(designData, framework);
 
+        // if (prompt.length > 120_000) {
+        // return res.status(413).json({
+        //     error: 'Design too large. Please generate per frame/component.',
+        // });
+        // }
         // Call Gemini AI
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-        const result = await model.generateContent(prompt);
+        // const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const result = await generateWithRetry(flashModel, prompt);
         const response = await result.response;
         const generatedCode = response.text();
 
