@@ -279,7 +279,10 @@
             btn.disabled = true;
             btn.innerHTML = 'Generating...<span class="loading"></span>';
 
-            const apiUrl = document.getElementById('apiUrl').value;
+            let apiUrl = document.getElementById('apiUrl').value;
+            if (apiUrl.endsWith('/')) {
+                apiUrl = apiUrl.slice(0, -1);
+            }
             const framework = document.getElementById('framework').value;
 
             try {
@@ -318,7 +321,10 @@
             btn.disabled = true;
             btn.innerHTML = 'Committing...<span class="loading"></span>';
 
-            const apiUrl = document.getElementById('apiUrl').value;
+            let apiUrl = document.getElementById('apiUrl').value;
+            if (apiUrl.endsWith('/')) {
+                apiUrl = apiUrl.slice(0, -1);
+            }
             const repoUrl = document.getElementById('repoUrl').value;
             const githubToken = document.getElementById('githubToken').value;
 

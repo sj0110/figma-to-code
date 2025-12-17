@@ -11,7 +11,8 @@
     ],
     "networkAccess": {
         "allowedDomains": [
-            "https://figma-to-code-backend.vercel.app"
+            "https://figma-to-code-backend.vercel.app",
+            "https://figma-to-code-backend-fvnspyyhu-suyash-jains-projects.vercel.app"
         ],
         "reasoning": "This plugin communicates with a backend API server for AI-powered code generation and GitHub repository integration."
     }
