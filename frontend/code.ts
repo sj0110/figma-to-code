@@ -7,11 +7,22 @@ interface EnhancedNodeData {
     id: string;
     name: string;
     type: string;
-    geometry: GeometryData;
-    styling: StylingData;
-    layout: LayoutData;
-    content: ContentData;
-    semantics: SemanticData;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    relativeTransform?: Transform;
+    constraints?: Constraints;
+    fills?: ReadonlyArray<Paint>;
+    strokes?: ReadonlyArray<Paint>;
+    strokeWeight?: number;
+    cornerRadius?: number | PluginAPI['mixed'];
+    effects?: ReadonlyArray<Effect>;
+    blendMode?: BlendMode;
+    layoutAlign?: LayoutAlign;
+    layoutGrow?: number;
+    layoutMode?: 'NONE' | 'HORIZONTAL' | 'VERTICAL' | 'GRID';
+    itemSpacing?: number;
     children?: EnhancedNodeData[];
 }
 
@@ -80,25 +91,49 @@ interface SemanticData {
     };
 }
 
-// Extract comprehensive node details with semantic analysis
-function extractNodeData(node: SceneNode): EnhancedNodeData {
-    const baseData: EnhancedNodeData = {
+// Helper to clone Figma values into postMessage‑safe plain objects
+function safeCloneForPostMessage(val: any): any {
+    if (val === undefined || val === null) return val;
+    const t = typeof val;
+    if (t === 'string' || t === 'number' || t === 'boolean') return val;
+    if (Array.isArray(val)) return val.map(safeCloneForPostMessage);
+    if (t === 'object') {
+        const out: any = {};
+        for (const k in val) {
+            const v = (val as any)[k];
+            if (typeof v === 'function' || typeof v === 'symbol') continue;
+            out[k] = safeCloneForPostMessage(v);
+        }
+        return out;
+    }
+    // Drop functions, symbols, bigint, etc.
+    return undefined;
+}
+
+// New frame context / node details extraction logic
+function getAllNodeDetails(node: SceneNode): EnhancedNodeData {
+    return {
         id: node.id,
         name: node.name,
         type: node.type,
-        geometry: extractGeometry(node),
-        styling: extractStyling(node),
-        layout: extractLayout(node),
-        content: extractContent(node),
-        semantics: analyzeSemantics(node),
+        x: node.x,
+        y: node.y,
+        width: node.width,
+        height: node.height,
+        relativeTransform: safeCloneForPostMessage(node.relativeTransform),
+        constraints: 'constraints' in node ? safeCloneForPostMessage(node.constraints) : undefined,
+        fills: 'fills' in node ? (safeCloneForPostMessage(node.fills) as ReadonlyArray<Paint>) : undefined,
+        strokes: 'strokes' in node ? (safeCloneForPostMessage(node.strokes) as ReadonlyArray<Paint>) : undefined,
+        strokeWeight: 'strokeWeight' in node ? (node as any).strokeWeight : undefined,
+        cornerRadius: 'cornerRadius' in node ? (node as any).cornerRadius : undefined,
+        effects: 'effects' in node ? (safeCloneForPostMessage((node as any).effects) as ReadonlyArray<Effect>) : undefined,
+        blendMode: 'blendMode' in node ? (node as any).blendMode : undefined,
+        layoutAlign: 'layoutAlign' in node ? (node as any).layoutAlign : undefined,
+        layoutGrow: 'layoutGrow' in node ? (node as any).layoutGrow : undefined,
+        layoutMode: 'layoutMode' in node ? (node as any).layoutMode : undefined,
+        itemSpacing: 'itemSpacing' in node ? (node as any).itemSpacing : undefined,
+        children: 'children' in node ? (node as any).children.map(getAllNodeDetails) : [],
     };
-
-    // Recursively extract children
-    if ('children' in node && node.children) {
-        baseData.children = node.children.map(child => extractNodeData(child));
-    }
-
-    return baseData;
 }
 
 function extractGeometry(node: SceneNode): GeometryData {
@@ -300,8 +335,8 @@ figma.ui.onmessage = async (msg) => {
 
             const selectedNode = selection[0];
 
-            // Extract comprehensive design data
-            const designData = extractNodeData(selectedNode);
+            // Extract comprehensive design data using new frame context logic
+            const designData = getAllNodeDetails(selectedNode);
             const colorPalette = extractColorPalette(selectedNode);
             const typography = extractTypography(selectedNode);
 
@@ -320,10 +355,13 @@ figma.ui.onmessage = async (msg) => {
                 structure: designData,
             };
 
+            // Clone to remove any remaining non‑serializable values before postMessage
+            const safeContext = safeCloneForPostMessage(enhancedContext);
+
             // Send to UI
             figma.ui.postMessage({
                 type: 'design-extracted',
-                data: enhancedContext,
+                data: safeContext,
             });
 
         } catch (error) {
