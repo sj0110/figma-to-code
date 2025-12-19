@@ -158,6 +158,38 @@
             display: none;   
             width: 100%;    
         }
+        .json-tree {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .json-node {
+            margin-left: 14px;
+        }
+
+        .json-key {
+            color: #9cdcfe;
+        }
+
+        .json-value-string {
+            color: #ce9178;
+        }
+
+        .json-value-number {
+            color: #b5cea8;
+        }
+
+        .json-value-boolean {
+            color: #569cd6;
+        }
+
+        .json-toggle {
+            cursor: pointer;
+            user-select: none;
+            margin-right: 4px;
+        }
+
 
         .copy-btn {
             position: absolute;
@@ -179,6 +211,20 @@
             z-index: 10;
         }
 
+        .json-toolbar {
+            position: absolute;
+            top: 15px;
+            right: 6px;
+            display: flex;
+            gap: 6px;
+            z-index: 20;
+        }
+
+        .json-toolbar .copy-btn {
+            position: static;   /* overrides absolute */
+            display: flex;
+            opacity: 0;;
+        }
         .copy-btn:hover {
             background: rgba(0, 0, 0, 0.75);
         }
@@ -265,10 +311,15 @@
 
             <div id="status" class="status hidden"></div>
             <div id="jsonContainer" class="json-container hidden">
-                <button class="copy-btn" onclick="copyJson()">📋</button>
+
+                <div class="json-toolbar">
+                    <button class="copy-btn" onclick="copyJson()" title="Copy JSON">📋</button>
+                    <button class="copy-btn" onclick="expandAll()" title="Expand all">➕</button>
+                    <button class="copy-btn" onclick="collapseAll()" title="Collapse all">➖</button>
+                </div>
+
                 <div id="jsonPreview" class="json-preview"></div>
             </div>
-
         </div>
     </div>
 
@@ -443,7 +494,9 @@
 
                 // Show preview
                 const preview = document.getElementById('jsonPreview');
-                preview.textContent = JSON.stringify(msg.data, null, 2);
+                preview.innerHTML = '';
+                preview.classList.add('json-tree');
+                preview.appendChild(createJsonTree(msg.data));
                 document.getElementById('jsonContainer').classList.remove('hidden');
 
                 // Enable generate button
@@ -460,6 +513,116 @@
                 document.getElementById('extractBtn').innerHTML = 'Extract Design Data';
             }
         };
+
+        function createJsonTree(value) {
+            if (value === undefined) {
+                return createValueSpan('undefined', 'json-value-boolean');
+            }
+
+            if (value === null) {
+                return createValueSpan('null', 'json-value-boolean');
+            }
+
+            const type = typeof value;
+
+            if (type === 'string') {
+                return createValueSpan(`"${value}"`, 'json-value-string');
+            }
+
+            if (type === 'number') {
+                return createValueSpan(value, 'json-value-number');
+            }
+
+            if (type === 'boolean') {
+                return createValueSpan(value, 'json-value-boolean');
+            }
+
+            if (Array.isArray(value)) {
+                return createExpandableNode(`Array(${value.length})`, value);
+            }
+
+            if (type === 'object') {
+                return createExpandableNode('Object', value);
+            }
+
+            // 🔒 Fallback (functions, symbols, etc.)
+            return createValueSpan(String(value), 'json-value-string');
+        }
+
+        function createExpandableNode(labelText, obj) {
+            const container = document.createElement('div');
+
+            const toggle = document.createElement('span');
+            toggle.textContent = '▶';
+            toggle.className = 'json-toggle';
+
+            const label = document.createElement('span');
+            label.textContent = ` ${labelText}`;
+
+            const children = document.createElement('div');
+            children.className = 'json-node';
+            children.style.display = 'none';
+
+            toggle.onclick = () => {
+                const isOpen = children.style.display === 'block';
+                toggle.textContent = isOpen ? '▶' : '▼';
+                children.style.display = isOpen ? 'none' : 'block';
+            };
+
+            Object.entries(obj || {}).forEach(([key, val]) => {
+                const row = document.createElement('div');
+
+                const keySpan = document.createElement('span');
+                keySpan.textContent = key + ': ';
+                keySpan.className = 'json-key';
+
+                row.appendChild(keySpan);
+
+                const childNode = createJsonTree(val);
+                if (childNode instanceof Node) {
+                    row.appendChild(childNode);
+                }
+
+                children.appendChild(row);
+            });
+
+            container.append(toggle, label, children);
+            return container;
+        }
+
+        function createValueSpan(value, className) {
+            const span = document.createElement('span');
+            span.textContent = value;
+            span.className = className;
+            return span;
+        }
+
+        function expandAll() {
+            const containers = document.querySelectorAll('.json-node');
+            const toggles = document.querySelectorAll('.json-toggle');
+
+            containers.forEach(node => {
+                node.style.display = 'block';
+            });
+
+            toggles.forEach(toggle => {
+                toggle.textContent = '▼';
+            });
+        }
+
+        function collapseAll() {
+            const containers = document.querySelectorAll('.json-node');
+            const toggles = document.querySelectorAll('.json-toggle');
+
+            containers.forEach(node => {
+                node.style.display = 'none';
+            });
+
+            toggles.forEach(toggle => {
+                toggle.textContent = '▶';
+            });
+        }
+
     </script>
 </body>
 
