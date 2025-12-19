@@ -55,45 +55,47 @@ function parseRepoUrl(repoUrl) {
 }
 
 function generatePrompt(designData, framework) {
-    return `You are an expert frontend developer. Generate production-ready ${framework} code based on the following design data.
+    return `
+        ### ROLE
+        You are a Senior Frontend Engineer specialized in high-performance UI implementation. Your task is to transform structured design data into a pixel-perfect, production-grade ${framework} component.
 
-            DESIGN DATA:
-            ${JSON.stringify(designData, null, 2)}
+        ### SOURCE DATA (JSON)
+        ${JSON.stringify(designData, null, 2)}
 
-            REQUIREMENTS:
-            1. Generate clean, maintainable, and well-structured code
-            2. Use ${framework} best practices and conventions
-            3. Include proper TypeScript types if applicable
-            4. Implement responsive design
-            5. Add proper accessibility attributes
-            6. Use Tailwind CSS for styling
-            7. Extract reusable components where appropriate
-            8. Add meaningful comments for complex logic
-            9. Ensure the component is self-contained and ready to use
+        ### TECHNICAL STACK
+        - **Framework:** ${framework}
+        - **Styling:** Tailwind CSS (utility-first approach)
+        - **Language:** TypeScript (Strict Mode)
 
-            FRAMEWORK-SPECIFIC GUIDELINES:
-            ${framework === 'nextjs' ? `
-            - Use Next.js 14+ App Router conventions
-            - Create a page.tsx or component file
-            - Use 'use client' directive if needed
-            - Implement proper metadata
-            ` : ''}
-            ${framework === 'react' ? `
-            - Create functional components with hooks
-            - Use proper prop types or TypeScript interfaces
-            - Implement error boundaries if needed
-            ` : ''}
-            ${framework === 'vue' ? `
-            - Use Vue 3 Composition API
-            - Implement proper script setup
-            - Use proper component naming conventions
-            ` : ''}
+        ### CORE REQUIREMENTS
+        1. **Architecture:** Use a "Composition over Inheritance" pattern. Deconstruct the design data into a main container and logical sub-components within the same file for portability.
+        2. **Prop Mapping:** Map the JSON "DESIGN DATA" keys directly to component props or internal constants. If the data contains layout values (padding, spacing), translate them to the nearest Tailwind scale.
+        3. **Accessibility (A11y):** Use semantic HTML (main, section, article). Ensure all interactive elements have ARIA labels and focus states.
+        4. **Responsiveness:** Implement a mobile-first approach using Tailwind's breakpoint prefixes (e.g., md:, lg:).
+        5. **Robustness:** Handle "null" or "undefined" states in the design data gracefully with sensible defaults or conditional rendering.
 
-            OUTPUT FORMAT:
-            Provide the complete code in a single file, properly formatted and ready to be committed to a repository.
-            Include the filename as a comment at the top.
+        ### FRAMEWORK-SPECIFIC CONSTRAINTS
+        ${framework === 'nextjs' ? `
+        - **Architecture:** Next.js 14+ App Router.
+        - **Directives:** Use 'use client' ONLY if interactive state (useState/useEffect) is required; otherwise, default to Server Components.
+        - **Optimization:** Use 'next/image' for any image assets found in the data.
+        - Do not import Head from 'next/head'
+        - Do not use <Head> component
+        - Do not include metadata` : ''}
+        ${framework === 'react' ? `
+        - **State:** Use modern hooks (useState, useMemo) for any calculated UI values.
+        - **Types:** Export a 'Props' interface that matches the design data structure.` : ''}
+        ${framework === 'react-native' ? `
+        - **Layout:** Use Flexbox exclusively.
+        - **Components:** Use 'SafeAreaView' for root containers and 'Pressable' for interactions.
+        - **Styling:** Use 'StyleSheet' only, no Nativewind` : ''}
 
-            Generate the code now:`;
+        ### OUTPUT SPECIFICATION
+        - Provide the code in a single, copy-pasteable block.
+        - Include a comment at the top with the suggested file path.
+        - **Crucial:** Do not explain the code; provide only the implementation.
+
+        Generate the code now:`;
 }
 
 // API Routes
