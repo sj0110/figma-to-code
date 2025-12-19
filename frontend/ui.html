@@ -155,15 +155,15 @@
         .json-container {
             position: relative;
             margin-top: 10px;
-            display: none;   /* ✅ prevents full width */
+            display: none;   
             width: 100%;    
         }
 
         .copy-btn {
             position: absolute;
-            top: 6px;
+            top: 15px;
             right: 6px;
-            width: 24px;          /* ✅ small square */
+            width: 24px;         
             height: 24px;
             padding: 0;
             border-radius: 4px;
@@ -230,11 +230,6 @@
             <h2 style="font-size: 18px; margin-bottom: 15px;">Configuration</h2>
 
             <div class="input-group">
-                <label>Backend API URL</label>
-                <input type="text" id="apiUrl" placeholder="http://localhost:5050" value="http://localhost:5050">
-            </div>
-
-            <div class="input-group">
                 <label>Target Framework</label>
                 <select id="framework">
                     <option value="nextjs">Next.js</option>
@@ -278,6 +273,8 @@
     </div>
 
     <script>
+        const API_URL = "http://localhost:5050";
+
         let extractedData = null;
         let generatedCode = null;
 
@@ -360,10 +357,8 @@
             btn.disabled = true;
             btn.innerHTML = 'Generating...<span class="loading"></span>';
 
-            let apiUrl = document.getElementById('apiUrl').value;
-            if (apiUrl.endsWith('/')) {
-                apiUrl = apiUrl.slice(0, -1);
-            }
+            const apiUrl = API_URL.replace(/\/$/, '');
+
             const framework = document.getElementById('framework').value;
 
             try {
@@ -402,10 +397,8 @@
             btn.disabled = true;
             btn.innerHTML = 'Committing...<span class="loading"></span>';
 
-            let apiUrl = document.getElementById('apiUrl').value;
-            if (apiUrl.endsWith('/')) {
-                apiUrl = apiUrl.slice(0, -1);
-            }
+            const apiUrl = API_URL.replace(/\/$/, '');
+
             const repoUrl = document.getElementById('repoUrl').value;
             const githubToken = document.getElementById('githubToken').value;
 
