@@ -149,7 +149,44 @@
             font-family: 'Courier New', monospace;
             font-size: 12px;
             margin-top: 10px;
+            width: 100%;
         }
+
+        .json-container {
+            position: relative;
+            margin-top: 10px;
+            display: none;   /* ✅ prevents full width */
+            width: 100%;    
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 24px;          /* ✅ small square */
+            height: 24px;
+            padding: 0;
+            border-radius: 4px;
+            border: none;
+            background: rgba(0, 0, 0, 0.55);
+            color: #fff;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .copy-btn:hover {
+            background: rgba(0, 0, 0, 0.75);
+        }
+
+        .json-container:hover .copy-btn {
+            opacity: 1;
+        }
+
 
         .step-indicator {
             display: flex;
@@ -232,7 +269,11 @@
             </button>
 
             <div id="status" class="status hidden"></div>
-            <div id="jsonPreview" class="json-preview hidden"></div>
+            <div id="jsonContainer" class="json-container hidden">
+                <button class="copy-btn" onclick="copyJson()">📋</button>
+                <div id="jsonPreview" class="json-preview"></div>
+            </div>
+
         </div>
     </div>
 
@@ -266,9 +307,49 @@
             const btn = document.getElementById('extractBtn');
             btn.disabled = true;
             btn.innerHTML = 'Extracting...<span class="loading"></span>';
+            
 
             parent.postMessage({ pluginMessage: { type: 'extract-design' } }, '*');
         }
+
+        function copyJson() {
+            const jsonText = document.getElementById('jsonPreview').textContent;
+            const btn = document.querySelector('.copy-btn');
+
+            const textarea = document.createElement('textarea');
+            textarea.value = jsonText;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showStatus('JSON copied to clipboard!', 'success');
+
+                    // ✅ Button feedback (THIS is where it belongs)
+                    const originalText = btn.textContent;
+                    btn.textContent = '✅';
+                    btn.disabled = true;
+
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                    }, 1500);
+
+                } else {
+                    showStatus('Copy failed', 'error');
+                }
+            } catch (err) {
+                showStatus('Copy not supported', 'error');
+            }
+
+            document.body.removeChild(textarea);
+        }
+
 
         // Generate code with AI
         async function generateCode() {
@@ -370,12 +451,14 @@
                 // Show preview
                 const preview = document.getElementById('jsonPreview');
                 preview.textContent = JSON.stringify(msg.data, null, 2);
-                preview.classList.remove('hidden');
+                document.getElementById('jsonContainer').classList.remove('hidden');
 
                 // Enable generate button
                 document.getElementById('generateBtn').classList.remove('hidden');
                 document.getElementById('extractBtn').disabled = false;
                 document.getElementById('extractBtn').innerHTML = 'Extract Design Data';
+                document.querySelector('.copy-btn').style.display = 'flex';
+                document.querySelector('.json-container').style.display = 'flex';
             }
 
             if (msg.type === 'error') {
