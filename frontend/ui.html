@@ -221,7 +221,6 @@
             background: rgba(72, 187, 120, 0.3);
         }
 
-        /* JSON Syntax Highlighting */
         .json-key {
             color: #9cdcfe;
         }
@@ -240,6 +239,22 @@
 
         .json-null {
             color: #569cd6;
+        }
+
+        .info-badge {
+            display: inline-block;
+            background: rgba(66, 153, 225, 0.3);
+            border: 1px solid rgba(66, 153, 225, 0.5);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+
+        .framework-info {
+            font-size: 12px;
+            margin-top: 5px;
+            color: rgba(255, 255, 255, 0.8);
         }
     </style>
 </head>
@@ -261,11 +276,15 @@
             <div class="input-group">
                 <label>Target Framework</label>
                 <select id="framework">
-                    <option value="nextjs">Next.js</option>
-                    <option value="react">React</option>
-                    <option value="vue">Vue.js</option>
-                    <option value="angular">Angular</option>
+                    <option value="nextjs">Next.js 15 (App Router)</option>
+                    <option value="react">React 19</option>
+                    <option value="react-native">React Native (Latest)</option>
+                    <option value="vue">Vue 3 (Composition API)</option>
+                    <option value="angular">Angular 18</option>
                 </select>
+                <div class="framework-info" id="frameworkInfo">
+                    Next.js 15 with App Router, TypeScript, and Tailwind CSS
+                </div>
             </div>
 
             <div class="input-group">
@@ -276,6 +295,17 @@
             <div class="input-group">
                 <label>GitHub Token</label>
                 <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxxx">
+            </div>
+
+            <div class="input-group">
+                <label>
+                    Branch Name
+                    <span class="info-badge">Optional</span>
+                </label>
+                <input type="text" id="branchName" placeholder="main (default)">
+                <div class="framework-info">
+                    Leave empty to use repository's default branch
+                </div>
             </div>
         </div>
 
@@ -305,16 +335,25 @@
     <script>
         let extractedData = null;
         let generatedCode = null;
-
-        // Backend URL fetched from plugin code (hidden from frontend)
         let API_URL = null;
 
-        // Request API URL from plugin code on load
+        const frameworkDescriptions = {
+            'nextjs': 'Next.js 15 with App Router, TypeScript, and Tailwind CSS',
+            'react': 'React 19 with TypeScript and modern hooks',
+            'react-native': 'React Native with TypeScript and Expo support',
+            'vue': 'Vue 3 with Composition API and TypeScript',
+            'angular': 'Angular 18 with standalone components'
+        };
+
         window.addEventListener('load', () => {
             parent.postMessage({ pluginMessage: { type: 'get-api-url' } }, '*');
+
+            document.getElementById('framework').addEventListener('change', (e) => {
+                const info = frameworkDescriptions[e.target.value] || '';
+                document.getElementById('frameworkInfo').textContent = info;
+            });
         });
 
-        // Update step indicator
         function updateStep(stepNum) {
             for (let i = 1; i <= 4; i++) {
                 const step = document.getElementById(`step${i}`);
@@ -324,7 +363,6 @@
             }
         }
 
-        // Show status message
         function showStatus(message, type = 'info') {
             const status = document.getElementById('status');
             status.textContent = message;
@@ -332,7 +370,6 @@
             status.classList.remove('hidden');
         }
 
-        // Extract design data
         function extractDesign() {
             updateStep(1);
             showStatus('Extracting design data...', 'info');
@@ -344,11 +381,9 @@
             parent.postMessage({ pluginMessage: { type: 'extract-design' } }, '*');
         }
 
-        // Beautify and syntax highlight JSON
         function beautifyJson(obj) {
             const json = JSON.stringify(obj, null, 2);
 
-            // Apply syntax highlighting
             return json
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
@@ -407,7 +442,6 @@
             document.body.removeChild(textarea);
         }
 
-        // Generate code with AI
         async function generateCode() {
             if (!API_URL) {
                 showStatus('Backend URL not configured', 'error');
@@ -423,6 +457,7 @@
 
             const apiUrl = API_URL.replace(/\/$/, '');
             const framework = document.getElementById('framework').value;
+            const repoUrl = document.getElementById('repoUrl').value;
 
             try {
                 const response = await fetch(`${apiUrl}/api/generate`, {
@@ -431,6 +466,7 @@
                     body: JSON.stringify({
                         designData: extractedData,
                         framework: framework,
+                        repoUrl: repoUrl || null
                     }),
                 });
 
@@ -452,7 +488,6 @@
             }
         }
 
-        // Commit to repository
         async function commitToRepo() {
             if (!API_URL) {
                 showStatus('Backend URL not configured', 'error');
@@ -468,6 +503,7 @@
             const apiUrl = API_URL.replace(/\/$/, '');
             const repoUrl = document.getElementById('repoUrl').value;
             const githubToken = document.getElementById('githubToken').value;
+            const branchName = document.getElementById('branchName').value || null;
 
             try {
                 const response = await fetch(`${apiUrl}/api/commit`, {
@@ -478,6 +514,7 @@
                         repoUrl: repoUrl,
                         githubToken: githubToken,
                         frameName: extractedData.metadata.frameName,
+                        branchName: branchName
                     }),
                 });
 
@@ -499,7 +536,6 @@
             }
         }
 
-        // Listen for messages from plugin
         window.onmessage = (event) => {
             const msg = event.data.pluginMessage;
 
@@ -512,13 +548,11 @@
                 updateStep(2);
                 showStatus('Design extracted successfully!', 'success');
 
-                // Show beautified JSON with syntax highlighting
                 const preview = document.getElementById('jsonPreview');
                 preview.innerHTML = beautifyJson(msg.data);
                 document.getElementById('jsonContainer').classList.remove('hidden');
                 document.getElementById('jsonContainer').style.display = 'block';
 
-                // Enable generate button
                 document.getElementById('generateBtn').classList.remove('hidden');
                 document.getElementById('extractBtn').disabled = false;
                 document.getElementById('extractBtn').innerHTML = 'Extract Design Data';
