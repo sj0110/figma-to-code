@@ -1,5 +1,9 @@
 // code.ts - Main Figma Plugin Logic
 
+// ⚠️ IMPORTANT: Store your backend URL here securely
+// This URL is NOT exposed in the frontend HTML
+const BACKEND_API_URL = "http://localhost:5050"; // Replace with your actual backend URL
+
 figma.showUI(__html__, { width: 500, height: 600 });
 
 // Enhanced design data extraction
@@ -283,7 +287,6 @@ function extractColorPalette(node: SceneNode): Record<string, string> {
 }
 
 function rgbToHex(r: number, g: number, b: number): string {
-    // If you get a TS error here, ensure your tsconfig.json has "es2017" or later in the "lib" array.
     return '#' + [r, g, b]
         .map(x => Math.round(x * 255).toString(16).padStart(2, '0'))
         .join('');
@@ -321,6 +324,15 @@ function extractTypography(node: SceneNode): any[] {
 
 // Message handlers
 figma.ui.onmessage = async (msg) => {
+    // Send API URL to UI when requested
+    if (msg.type === 'get-api-url') {
+        figma.ui.postMessage({
+            type: 'api-url',
+            url: BACKEND_API_URL,
+        });
+        return;
+    }
+
     if (msg.type === 'extract-design') {
         try {
             const selection = figma.currentPage.selection;
@@ -371,7 +383,7 @@ figma.ui.onmessage = async (msg) => {
             }
             figma.ui.postMessage({
                 type: 'error',
-                message: `Extraction failed: ${(error as any).message}`
+                message: message
             });
         }
     }

@@ -141,74 +141,25 @@
         }
 
         .json-preview {
-            max-height: 200px;
+            max-height: 400px;
             overflow-y: auto;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 15px;
             border-radius: 6px;
             font-family: 'Courier New', monospace;
             font-size: 12px;
             margin-top: 10px;
             width: 100%;
+            white-space: pre;
+            color: #d4d4d4;
+            line-height: 1.6;
         }
 
         .json-container {
             position: relative;
             margin-top: 10px;
-            display: none;   
-            width: 100%;    
-        }
-        .json-tree {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            line-height: 1.5;
-        }
-
-        .json-node {
-            margin-left: 14px;
-        }
-
-        .json-key {
-            color: #9cdcfe;
-        }
-
-        .json-value-string {
-            color: #ce9178;
-        }
-
-        .json-value-number {
-            color: #b5cea8;
-        }
-
-        .json-value-boolean {
-            color: #569cd6;
-        }
-
-        .json-toggle {
-            cursor: pointer;
-            user-select: none;
-            margin-right: 4px;
-        }
-
-
-        .copy-btn {
-            position: absolute;
-            top: 15px;
-            right: 6px;
-            width: 24px;         
-            height: 24px;
-            padding: 0;
-            border-radius: 4px;
-            border: none;
-            background: rgba(0, 0, 0, 0.55);
-            color: #fff;
-            cursor: pointer;
-            font-size: 12px;
-            line-height: 1;
             display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
+            width: 100%;
         }
 
         .json-toolbar {
@@ -220,11 +171,23 @@
             z-index: 20;
         }
 
-        .json-toolbar .copy-btn {
-            position: static;   /* overrides absolute */
+        .copy-btn {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border-radius: 4px;
+            border: none;
+            background: rgba(0, 0, 0, 0.55);
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
             display: flex;
-            opacity: 0;;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s, background 0.2s;
         }
+
         .copy-btn:hover {
             background: rgba(0, 0, 0, 0.75);
         }
@@ -232,7 +195,6 @@
         .json-container:hover .copy-btn {
             opacity: 1;
         }
-
 
         .step-indicator {
             display: flex;
@@ -257,6 +219,27 @@
 
         .step.complete {
             background: rgba(72, 187, 120, 0.3);
+        }
+
+        /* JSON Syntax Highlighting */
+        .json-key {
+            color: #9cdcfe;
+        }
+
+        .json-string {
+            color: #ce9178;
+        }
+
+        .json-number {
+            color: #b5cea8;
+        }
+
+        .json-boolean {
+            color: #569cd6;
+        }
+
+        .json-null {
+            color: #569cd6;
         }
     </style>
 </head>
@@ -311,23 +294,25 @@
 
             <div id="status" class="status hidden"></div>
             <div id="jsonContainer" class="json-container hidden">
-
                 <div class="json-toolbar">
                     <button class="copy-btn" onclick="copyJson()" title="Copy JSON">📋</button>
-                    <button class="copy-btn" onclick="expandAll()" title="Expand all">➕</button>
-                    <button class="copy-btn" onclick="collapseAll()" title="Collapse all">➖</button>
                 </div>
-
                 <div id="jsonPreview" class="json-preview"></div>
             </div>
         </div>
     </div>
 
     <script>
-        const API_URL = "http://localhost:5050";
-
         let extractedData = null;
         let generatedCode = null;
+
+        // Backend URL fetched from plugin code (hidden from frontend)
+        let API_URL = null;
+
+        // Request API URL from plugin code on load
+        window.addEventListener('load', () => {
+            parent.postMessage({ pluginMessage: { type: 'get-api-url' } }, '*');
+        });
 
         // Update step indicator
         function updateStep(stepNum) {
@@ -355,13 +340,38 @@
             const btn = document.getElementById('extractBtn');
             btn.disabled = true;
             btn.innerHTML = 'Extracting...<span class="loading"></span>';
-            
 
             parent.postMessage({ pluginMessage: { type: 'extract-design' } }, '*');
         }
 
+        // Beautify and syntax highlight JSON
+        function beautifyJson(obj) {
+            const json = JSON.stringify(obj, null, 2);
+
+            // Apply syntax highlighting
+            return json
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                    let cls = 'json-number';
+                    if (/^"/.test(match)) {
+                        if (/:$/.test(match)) {
+                            cls = 'json-key';
+                        } else {
+                            cls = 'json-string';
+                        }
+                    } else if (/true|false/.test(match)) {
+                        cls = 'json-boolean';
+                    } else if (/null/.test(match)) {
+                        cls = 'json-null';
+                    }
+                    return '<span class="' + cls + '">' + match + '</span>';
+                });
+        }
+
         function copyJson() {
-            const jsonText = document.getElementById('jsonPreview').textContent;
+            const jsonText = extractedData ? JSON.stringify(extractedData, null, 2) : '';
             const btn = document.querySelector('.copy-btn');
 
             const textarea = document.createElement('textarea');
@@ -378,7 +388,6 @@
                 if (successful) {
                     showStatus('JSON copied to clipboard!', 'success');
 
-                    // ✅ Button feedback (THIS is where it belongs)
                     const originalText = btn.textContent;
                     btn.textContent = '✅';
                     btn.disabled = true;
@@ -398,9 +407,13 @@
             document.body.removeChild(textarea);
         }
 
-
         // Generate code with AI
         async function generateCode() {
+            if (!API_URL) {
+                showStatus('Backend URL not configured', 'error');
+                return;
+            }
+
             updateStep(3);
             showStatus('Generating code with AI...', 'info');
 
@@ -409,7 +422,6 @@
             btn.innerHTML = 'Generating...<span class="loading"></span>';
 
             const apiUrl = API_URL.replace(/\/$/, '');
-
             const framework = document.getElementById('framework').value;
 
             try {
@@ -442,6 +454,11 @@
 
         // Commit to repository
         async function commitToRepo() {
+            if (!API_URL) {
+                showStatus('Backend URL not configured', 'error');
+                return;
+            }
+
             showStatus('Committing to repository...', 'info');
 
             const btn = document.getElementById('commitBtn');
@@ -449,7 +466,6 @@
             btn.innerHTML = 'Committing...<span class="loading"></span>';
 
             const apiUrl = API_URL.replace(/\/$/, '');
-
             const repoUrl = document.getElementById('repoUrl').value;
             const githubToken = document.getElementById('githubToken').value;
 
@@ -487,24 +503,25 @@
         window.onmessage = (event) => {
             const msg = event.data.pluginMessage;
 
+            if (msg.type === 'api-url') {
+                API_URL = msg.url;
+            }
+
             if (msg.type === 'design-extracted') {
                 extractedData = msg.data;
                 updateStep(2);
                 showStatus('Design extracted successfully!', 'success');
 
-                // Show preview
+                // Show beautified JSON with syntax highlighting
                 const preview = document.getElementById('jsonPreview');
-                preview.innerHTML = '';
-                preview.classList.add('json-tree');
-                preview.appendChild(createJsonTree(msg.data));
+                preview.innerHTML = beautifyJson(msg.data);
                 document.getElementById('jsonContainer').classList.remove('hidden');
+                document.getElementById('jsonContainer').style.display = 'block';
 
                 // Enable generate button
                 document.getElementById('generateBtn').classList.remove('hidden');
                 document.getElementById('extractBtn').disabled = false;
                 document.getElementById('extractBtn').innerHTML = 'Extract Design Data';
-                document.querySelector('.copy-btn').style.display = 'flex';
-                document.querySelector('.json-container').style.display = 'flex';
             }
 
             if (msg.type === 'error') {
@@ -513,116 +530,6 @@
                 document.getElementById('extractBtn').innerHTML = 'Extract Design Data';
             }
         };
-
-        function createJsonTree(value) {
-            if (value === undefined) {
-                return createValueSpan('undefined', 'json-value-boolean');
-            }
-
-            if (value === null) {
-                return createValueSpan('null', 'json-value-boolean');
-            }
-
-            const type = typeof value;
-
-            if (type === 'string') {
-                return createValueSpan(`"${value}"`, 'json-value-string');
-            }
-
-            if (type === 'number') {
-                return createValueSpan(value, 'json-value-number');
-            }
-
-            if (type === 'boolean') {
-                return createValueSpan(value, 'json-value-boolean');
-            }
-
-            if (Array.isArray(value)) {
-                return createExpandableNode(`Array(${value.length})`, value);
-            }
-
-            if (type === 'object') {
-                return createExpandableNode('Object', value);
-            }
-
-            // 🔒 Fallback (functions, symbols, etc.)
-            return createValueSpan(String(value), 'json-value-string');
-        }
-
-        function createExpandableNode(labelText, obj) {
-            const container = document.createElement('div');
-
-            const toggle = document.createElement('span');
-            toggle.textContent = '▶';
-            toggle.className = 'json-toggle';
-
-            const label = document.createElement('span');
-            label.textContent = ` ${labelText}`;
-
-            const children = document.createElement('div');
-            children.className = 'json-node';
-            children.style.display = 'none';
-
-            toggle.onclick = () => {
-                const isOpen = children.style.display === 'block';
-                toggle.textContent = isOpen ? '▶' : '▼';
-                children.style.display = isOpen ? 'none' : 'block';
-            };
-
-            Object.entries(obj || {}).forEach(([key, val]) => {
-                const row = document.createElement('div');
-
-                const keySpan = document.createElement('span');
-                keySpan.textContent = key + ': ';
-                keySpan.className = 'json-key';
-
-                row.appendChild(keySpan);
-
-                const childNode = createJsonTree(val);
-                if (childNode instanceof Node) {
-                    row.appendChild(childNode);
-                }
-
-                children.appendChild(row);
-            });
-
-            container.append(toggle, label, children);
-            return container;
-        }
-
-        function createValueSpan(value, className) {
-            const span = document.createElement('span');
-            span.textContent = value;
-            span.className = className;
-            return span;
-        }
-
-        function expandAll() {
-            const containers = document.querySelectorAll('.json-node');
-            const toggles = document.querySelectorAll('.json-toggle');
-
-            containers.forEach(node => {
-                node.style.display = 'block';
-            });
-
-            toggles.forEach(toggle => {
-                toggle.textContent = '▼';
-            });
-        }
-
-        function collapseAll() {
-            const containers = document.querySelectorAll('.json-node');
-            const toggles = document.querySelectorAll('.json-toggle');
-
-            containers.forEach(node => {
-                node.style.display = 'none';
-            });
-
-            toggles.forEach(toggle => {
-                toggle.textContent = '▶';
-            });
-        }
-
     </script>
 </body>
 
