@@ -96,6 +96,14 @@
             background: rgba(255, 255, 255, 0.2);
         }
 
+        .success-btn {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        }
+
+        .warning-btn {
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+        }
+
         .status {
             padding: 10px;
             border-radius: 8px;
@@ -146,10 +154,10 @@
             background: rgba(0, 0, 0, 0.4);
             padding: 15px;
             border-radius: 6px;
-            font-family: 'Courier New', monospace; /* Keeps characters aligned */
+            font-family: 'Courier New', monospace;
             font-size: 13px;
-            white-space: pre; /* CRITICAL: This keeps the proper code formatting/tabs */
-            color: #fff;      /* Clean white text since we aren't highlighting */
+            white-space: pre;
+            color: #fff;
             line-height: 1.5;
         }
 
@@ -219,26 +227,6 @@
             background: rgba(72, 187, 120, 0.3);
         }
 
-        .json-key {
-            color: #9cdcfe;
-        }
-
-        .json-string {
-            color: #ce9178;
-        }
-
-        .json-number {
-            color: #b5cea8;
-        }
-
-        .json-boolean {
-            color: #569cd6;
-        }
-
-        .json-null {
-            color: #569cd6;
-        }
-
         .info-badge {
             display: inline-block;
             background: rgba(66, 153, 225, 0.3);
@@ -255,7 +243,6 @@
             color: rgba(255, 255, 255, 0.8);
         }
 
-        /* Tab Styling */
         .tabs {
             display: flex;
             gap: 10px;
@@ -276,22 +263,59 @@
         .tab.active {
             background: rgba(255, 255, 255, 0.3);
             border-color: #f093fb;
-            color: #fff; 
-            font-weight: 600; 
+            color: #fff;
+            font-weight: 600;
         }
 
-        /* Code Specific Styling */
-        .code-preview {
-            color: #dcdcaa; /* VS Code style light yellow for code */
-            font-family: 'Fira Code', 'Courier New', monospace;
+        .success-message {
+            background: rgba(72, 187, 120, 0.2);
+            border: 1px solid rgba(72, 187, 120, 0.5);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
         }
 
-        .keyword { color: #569cd6; }
-        .function { color: #dcdcaa; }
-        .string { color: #ce9178; }
-        .comment { color: #6a9955;font-style: italic;  }
+        .success-message h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #48bb78;
+        }
+
+        .success-message p {
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .success-message a {
+            color: #90cdf4;
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        .success-message a:hover {
+            text-decoration: underline;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .action-buttons button {
+            flex: 1;
+        }
+
+        .frame-count {
+            background: rgba(72, 187, 120, 0.2);
+            border: 1px solid rgba(72, 187, 120, 0.4);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
     </style>
-    
 </head>
 
 <body>
@@ -357,13 +381,29 @@
                 Commit to Repository
             </button>
 
+            <div id="successMessage" class="success-message hidden">
+                <h3>✅ Successfully Committed!</h3>
+                <p><strong>Commit:</strong> <a id="commitLink" href="#" target="_blank"></a></p>
+                <p><strong>File:</strong> <a id="fileLink" href="#" target="_blank"></a></p>
+
+                <div class="action-buttons" style="font-size: 14px;">
+                    <button class="success-btn" style="font-size: 14px; padding: 10px;" onclick="processAnotherFrame()">
+                        Process Another Frame
+                    </button>
+                    <button class="warning-btn" style="font-size: 14px; padding: 10px;" onclick="closePlugin()">
+                        Close Plugin
+                    </button>
+                </div>
+            </div>
+
             <div id="status" class="status hidden"></div>
+
             <div id="jsonContainer" class="json-container hidden">
                 <div class="tabs">
                     <div id="tabJson" class="tab active" onclick="switchTab('json')">Design JSON</div>
-                    <div id="tabCode" class="tab"  style="display:none;" onclick="switchTab('code')">Generated Code</div>
+                    <div id="tabCode" class="tab" style="display:none;" onclick="switchTab('code')">Generated Code</div>
                 </div>
-                
+
                 <div class="json-toolbar">
                     <button class="copy-btn" onclick="copyCurrentContent()" title="Copy">📋</button>
                 </div>
@@ -377,7 +417,8 @@
         let extractedData = null;
         let generatedCode = null;
         let API_URL = null;
-        let currentView = 'json'; 
+        let currentView = 'json';
+        let processedFramesCount = 0;
 
         const frameworkDescriptions = {
             'nextjs': 'Next.js 15 with App Router, TypeScript, and Tailwind CSS',
@@ -412,6 +453,11 @@
             status.classList.remove('hidden');
         }
 
+        function hideStatus() {
+            const status = document.getElementById('status');
+            status.classList.add('hidden');
+        }
+
         function switchTab(view) {
             currentView = view;
             const tabJson = document.getElementById('tabJson');
@@ -422,10 +468,8 @@
             if (tabCode) tabCode.classList.toggle('active', view === 'code');
 
             if (view === 'json') {
-                // tabJson.classList.add('active');
                 preview.innerHTML = beautifyJson(extractedData);
             } else {
-                // tabCode.classList.add('active');
                 preview.innerHTML = simpleHighlight(generatedCode);
             }
         }
@@ -433,8 +477,6 @@
         function simpleHighlight(code) {
             if (!code) return "No code generated yet...";
 
-            // This converts < to &lt; and > to &gt; so the browser 
-            // displays the code instead of trying to run it.
             const escapedCode = code
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
@@ -442,16 +484,14 @@
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#039;');
 
-            // Return the code wrapped in its original structure
             return escapedCode;
         }
-        // Rename this to match your HTML button's onclick
+
         function copyCurrentContent() {
-            const textToCopy = currentView === 'json' 
-                ? JSON.stringify(extractedData, null, 2) 
+            const textToCopy = currentView === 'json'
+                ? JSON.stringify(extractedData, null, 2)
                 : generatedCode;
-            
-            // Copy logic
+
             const textarea = document.createElement('textarea');
             textarea.value = textToCopy;
             document.body.appendChild(textarea);
@@ -459,6 +499,7 @@
             document.execCommand('copy');
             document.body.removeChild(textarea);
             showStatus('Copied to clipboard!', 'success');
+            setTimeout(hideStatus, 2000);
         }
 
         function extractDesign() {
@@ -496,43 +537,6 @@
                 });
         }
 
-        // function copyJson() {
-        //     const jsonText = extractedData ? JSON.stringify(extractedData, null, 2) : '';
-        //     const btn = document.querySelector('.copy-btn');
-
-        //     const textarea = document.createElement('textarea');
-        //     textarea.value = jsonText;
-        //     textarea.style.position = 'fixed';
-        //     textarea.style.opacity = '0';
-
-        //     document.body.appendChild(textarea);
-        //     textarea.focus();
-        //     textarea.select();
-
-        //     try {
-        //         const successful = document.execCommand('copy');
-        //         if (successful) {
-        //             showStatus('JSON copied to clipboard!', 'success');
-
-        //             const originalText = btn.textContent;
-        //             btn.textContent = '✅';
-        //             btn.disabled = true;
-
-        //             setTimeout(() => {
-        //                 btn.textContent = originalText;
-        //                 btn.disabled = false;
-        //             }, 1500);
-
-        //         } else {
-        //             showStatus('Copy failed', 'error');
-        //         }
-        //     } catch (err) {
-        //         showStatus('Copy not supported', 'error');
-        //     }
-
-        //     document.body.removeChild(textarea);
-        // }
-
         async function generateCode() {
             if (!API_URL) {
                 showStatus('Backend URL not configured', 'error');
@@ -567,7 +571,7 @@
                     generatedCode = result.code;
                     showStatus('Code generated successfully!', 'success');
                     document.getElementById('commitBtn').classList.remove('hidden');
-                    document.getElementById('tabCode').style.display = 'block'; 
+                    document.getElementById('tabCode').style.display = 'block';
                     switchTab('code');
                     updateStep(4);
                 } else {
@@ -614,19 +618,71 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    showStatus(`✅ Committed successfully! View at: ${result.commitUrl}`, 'success');
-                    setTimeout(() => {
-                        parent.postMessage({ pluginMessage: { type: 'close-plugin' } }, '*');
-                    }, 3000);
+                    processedFramesCount++;
+
+                    // Hide status and show success message
+                    hideStatus();
+
+                    const successMsg = document.getElementById('successMessage');
+                    const commitLink = document.getElementById('commitLink');
+                    const fileLink = document.getElementById('fileLink');
+
+                    commitLink.href = result.commitUrl;
+                    commitLink.textContent = result.commitHash.substring(0, 7);
+
+                    fileLink.href = result.fileUrl;
+                    fileLink.textContent = result.filePath;
+
+                    successMsg.classList.remove('hidden');
+
+                    // Hide commit button
+                    btn.classList.add('hidden');
+
                 } else {
                     throw new Error(result.error);
                 }
             } catch (error) {
                 showStatus(`Commit failed: ${error.message}`, 'error');
-            } finally {
                 btn.disabled = false;
                 btn.innerHTML = 'Commit to Repository';
             }
+        }
+
+        function processAnotherFrame() {
+            // Reset the UI for another frame
+            extractedData = null;
+            generatedCode = null;
+
+            // Hide success message
+            document.getElementById('successMessage').classList.add('hidden');
+
+            // Reset buttons
+            document.getElementById('generateBtn').classList.add('hidden');
+            document.getElementById('commitBtn').classList.add('hidden');
+            document.getElementById('commitBtn').disabled = false;
+            document.getElementById('commitBtn').innerHTML = 'Commit to Repository';
+
+            // Hide JSON container and tabs
+            document.getElementById('jsonContainer').classList.add('hidden');
+            document.getElementById('tabCode').style.display = 'none';
+
+            // Reset steps
+            updateStep(1);
+
+            // Re-enable extract button
+            const extractBtn = document.getElementById('extractBtn');
+            extractBtn.disabled = false;
+            extractBtn.innerHTML = 'Extract Design Data';
+
+            // Show instruction message
+            showStatus(`Ready to process frame #${processedFramesCount + 1}. Select a frame and click Extract.`, 'info');
+
+            // Scroll to top
+            window.scrollTo(0, 0);
+        }
+
+        function closePlugin() {
+            parent.postMessage({ pluginMessage: { type: 'close-plugin' } }, '*');
         }
 
         window.onmessage = async (event) => {
@@ -646,9 +702,8 @@
                 extractedData = msg.data;
                 showStatus('Saving to database...', 'info');
                 const apiUrl = API_URL.replace(/\/$/, '');
-                
+
                 try {
-                    // 2. Call your Database API directly from here
                     const response = await fetch(`${apiUrl}/api/extract`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -664,31 +719,21 @@
                     showStatus('Design extracted successfully!', 'success');
                     updateStep(2);
 
-                    // Update UI components
                     const container = document.getElementById('jsonContainer');
                     const preview = document.getElementById('contentPreview');
                     if (container) {
                         container.classList.remove('hidden');
                         container.style.display = 'block';
-                        // 2. Then, wait a tiny bit or ensure switchTab has the elements
-                        // setTimeout(() => {
-                        //     switchTab('json'); 
-                        // }, 10);
                         preview.innerHTML = beautifyJson(extractedData);
                         switchTab('json');
                     }
-                    // const preview = document.getElementById('contentPreview');
-                    // preview.innerHTML = beautifyJson(msg.data);
-                    
-                    // document.getElementById('jsonContainer').classList.remove('hidden');
-                    // document.getElementById('jsonContainer').style.display = 'block';
+
                     document.getElementById('generateBtn').classList.remove('hidden');
                 } catch (error) {
                     showStatus('Database error: ' + error.message, 'error');
                     console.error('Fetch Error:', error);
                 }
                 finally {
-                    // Always re-enable the button regardless of success or failure
                     document.getElementById('extractBtn').disabled = false;
                     document.getElementById('extractBtn').innerHTML = 'Extract Design Data';
                 }
