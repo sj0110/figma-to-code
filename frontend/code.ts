@@ -352,10 +352,16 @@ figma.ui.onmessage = async (msg) => {
             const colorPalette = extractColorPalette(selectedNode);
             const typography = extractTypography(selectedNode);
 
-            // Create enhanced context
+            let fileId = figma.root.getPluginData("unique_file_id");
+
+            if (!fileId) {
+                fileId = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+                figma.root.setPluginData("unique_file_id", fileId);
+            }
+
             const enhancedContext = {
                 metadata: {
-                    figmaFileId: figma.fileKey,
+                    figmaFileId: fileId,
                     frameName: selectedNode.name,
                     frameId: selectedNode.id,
                     extractedAt: new Date().toISOString(),

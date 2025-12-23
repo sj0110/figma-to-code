@@ -137,35 +137,33 @@
         }
 
         .hidden {
-            display: none;
+            display: none !important;
         }
 
         .json-preview {
             max-height: 400px;
-            overflow-y: auto;
+            overflow: auto;
             background: rgba(0, 0, 0, 0.4);
             padding: 15px;
             border-radius: 6px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            margin-top: 10px;
-            width: 100%;
-            white-space: pre;
-            color: #d4d4d4;
-            line-height: 1.6;
+            font-family: 'Courier New', monospace; /* Keeps characters aligned */
+            font-size: 13px;
+            white-space: pre; /* CRITICAL: This keeps the proper code formatting/tabs */
+            color: #fff;      /* Clean white text since we aren't highlighting */
+            line-height: 1.5;
         }
 
         .json-container {
             position: relative;
             margin-top: 10px;
-            display: none;
+            display: block;
             width: 100%;
         }
 
         .json-toolbar {
             position: absolute;
-            top: 15px;
-            right: 6px;
+            top: 45px;
+            right: 10px;
             display: flex;
             gap: 6px;
             z-index: 20;
@@ -256,7 +254,44 @@
             margin-top: 5px;
             color: rgba(255, 255, 255, 0.8);
         }
+
+        /* Tab Styling */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .tab {
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.2s;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .tab.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: #f093fb;
+            color: #fff; 
+            font-weight: 600; 
+        }
+
+        /* Code Specific Styling */
+        .code-preview {
+            color: #dcdcaa; /* VS Code style light yellow for code */
+            font-family: 'Fira Code', 'Courier New', monospace;
+        }
+
+        .keyword { color: #569cd6; }
+        .function { color: #dcdcaa; }
+        .string { color: #ce9178; }
+        .comment { color: #6a9955;font-style: italic;  }
     </style>
+    
 </head>
 
 <body>
@@ -324,10 +359,16 @@
 
             <div id="status" class="status hidden"></div>
             <div id="jsonContainer" class="json-container hidden">
-                <div class="json-toolbar">
-                    <button class="copy-btn" onclick="copyJson()" title="Copy JSON">📋</button>
+                <div class="tabs">
+                    <div id="tabJson" class="tab active" onclick="switchTab('json')">Design JSON</div>
+                    <div id="tabCode" class="tab"  style="display:none;" onclick="switchTab('code')">Generated Code</div>
                 </div>
-                <div id="jsonPreview" class="json-preview"></div>
+                
+                <div class="json-toolbar">
+                    <button class="copy-btn" onclick="copyCurrentContent()" title="Copy">📋</button>
+                </div>
+
+                <div id="contentPreview" class="json-preview"></div>
             </div>
         </div>
     </div>
@@ -336,6 +377,7 @@
         let extractedData = null;
         let generatedCode = null;
         let API_URL = null;
+        let currentView = 'json'; 
 
         const frameworkDescriptions = {
             'nextjs': 'Next.js 15 with App Router, TypeScript, and Tailwind CSS',
@@ -368,6 +410,55 @@
             status.textContent = message;
             status.className = `status ${type}`;
             status.classList.remove('hidden');
+        }
+
+        function switchTab(view) {
+            currentView = view;
+            const tabJson = document.getElementById('tabJson');
+            const tabCode = document.getElementById('tabCode');
+            const preview = document.getElementById('contentPreview');
+            if (!preview) return;
+            if (tabJson) tabJson.classList.toggle('active', view === 'json');
+            if (tabCode) tabCode.classList.toggle('active', view === 'code');
+
+            if (view === 'json') {
+                // tabJson.classList.add('active');
+                preview.innerHTML = beautifyJson(extractedData);
+            } else {
+                // tabCode.classList.add('active');
+                preview.innerHTML = simpleHighlight(generatedCode);
+            }
+        }
+
+        function simpleHighlight(code) {
+            if (!code) return "No code generated yet...";
+
+            // This converts < to &lt; and > to &gt; so the browser 
+            // displays the code instead of trying to run it.
+            const escapedCode = code
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+
+            // Return the code wrapped in its original structure
+            return escapedCode;
+        }
+        // Rename this to match your HTML button's onclick
+        function copyCurrentContent() {
+            const textToCopy = currentView === 'json' 
+                ? JSON.stringify(extractedData, null, 2) 
+                : generatedCode;
+            
+            // Copy logic
+            const textarea = document.createElement('textarea');
+            textarea.value = textToCopy;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showStatus('Copied to clipboard!', 'success');
         }
 
         function extractDesign() {
@@ -405,42 +496,42 @@
                 });
         }
 
-        function copyJson() {
-            const jsonText = extractedData ? JSON.stringify(extractedData, null, 2) : '';
-            const btn = document.querySelector('.copy-btn');
+        // function copyJson() {
+        //     const jsonText = extractedData ? JSON.stringify(extractedData, null, 2) : '';
+        //     const btn = document.querySelector('.copy-btn');
 
-            const textarea = document.createElement('textarea');
-            textarea.value = jsonText;
-            textarea.style.position = 'fixed';
-            textarea.style.opacity = '0';
+        //     const textarea = document.createElement('textarea');
+        //     textarea.value = jsonText;
+        //     textarea.style.position = 'fixed';
+        //     textarea.style.opacity = '0';
 
-            document.body.appendChild(textarea);
-            textarea.focus();
-            textarea.select();
+        //     document.body.appendChild(textarea);
+        //     textarea.focus();
+        //     textarea.select();
 
-            try {
-                const successful = document.execCommand('copy');
-                if (successful) {
-                    showStatus('JSON copied to clipboard!', 'success');
+        //     try {
+        //         const successful = document.execCommand('copy');
+        //         if (successful) {
+        //             showStatus('JSON copied to clipboard!', 'success');
 
-                    const originalText = btn.textContent;
-                    btn.textContent = '✅';
-                    btn.disabled = true;
+        //             const originalText = btn.textContent;
+        //             btn.textContent = '✅';
+        //             btn.disabled = true;
 
-                    setTimeout(() => {
-                        btn.textContent = originalText;
-                        btn.disabled = false;
-                    }, 1500);
+        //             setTimeout(() => {
+        //                 btn.textContent = originalText;
+        //                 btn.disabled = false;
+        //             }, 1500);
 
-                } else {
-                    showStatus('Copy failed', 'error');
-                }
-            } catch (err) {
-                showStatus('Copy not supported', 'error');
-            }
+        //         } else {
+        //             showStatus('Copy failed', 'error');
+        //         }
+        //     } catch (err) {
+        //         showStatus('Copy not supported', 'error');
+        //     }
 
-            document.body.removeChild(textarea);
-        }
+        //     document.body.removeChild(textarea);
+        // }
 
         async function generateCode() {
             if (!API_URL) {
@@ -476,6 +567,8 @@
                     generatedCode = result.code;
                     showStatus('Code generated successfully!', 'success');
                     document.getElementById('commitBtn').classList.remove('hidden');
+                    document.getElementById('tabCode').style.display = 'block'; 
+                    switchTab('code');
                     updateStep(4);
                 } else {
                     throw new Error(result.error);
@@ -536,7 +629,7 @@
             }
         }
 
-        window.onmessage = (event) => {
+        window.onmessage = async (event) => {
             const msg = event.data.pluginMessage;
 
             if (msg.type === 'api-url') {
@@ -544,18 +637,61 @@
             }
 
             if (msg.type === 'design-extracted') {
+                if (!API_URL) {
+                    showStatus('Backend URL not configured', 'error');
+                    document.getElementById('extractBtn').disabled = false;
+                    document.getElementById('extractBtn').innerHTML = 'Extract Design Data';
+                    return;
+                }
                 extractedData = msg.data;
-                updateStep(2);
-                showStatus('Design extracted successfully!', 'success');
+                showStatus('Saving to database...', 'info');
+                const apiUrl = API_URL.replace(/\/$/, '');
+                
+                try {
+                    // 2. Call your Database API directly from here
+                    const response = await fetch(`${apiUrl}/api/extract`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            designData: extractedData,
+                        }),
+                    });
 
-                const preview = document.getElementById('jsonPreview');
-                preview.innerHTML = beautifyJson(msg.data);
-                document.getElementById('jsonContainer').classList.remove('hidden');
-                document.getElementById('jsonContainer').style.display = 'block';
+                    if (!response.ok) {
+                        throw new Error(`Server responded with ${response.status}`);
+                    }
 
-                document.getElementById('generateBtn').classList.remove('hidden');
-                document.getElementById('extractBtn').disabled = false;
-                document.getElementById('extractBtn').innerHTML = 'Extract Design Data';
+                    showStatus('Design extracted successfully!', 'success');
+                    updateStep(2);
+
+                    // Update UI components
+                    const container = document.getElementById('jsonContainer');
+                    const preview = document.getElementById('contentPreview');
+                    if (container) {
+                        container.classList.remove('hidden');
+                        container.style.display = 'block';
+                        // 2. Then, wait a tiny bit or ensure switchTab has the elements
+                        // setTimeout(() => {
+                        //     switchTab('json'); 
+                        // }, 10);
+                        preview.innerHTML = beautifyJson(extractedData);
+                        switchTab('json');
+                    }
+                    // const preview = document.getElementById('contentPreview');
+                    // preview.innerHTML = beautifyJson(msg.data);
+                    
+                    // document.getElementById('jsonContainer').classList.remove('hidden');
+                    // document.getElementById('jsonContainer').style.display = 'block';
+                    document.getElementById('generateBtn').classList.remove('hidden');
+                } catch (error) {
+                    showStatus('Database error: ' + error.message, 'error');
+                    console.error('Fetch Error:', error);
+                }
+                finally {
+                    // Always re-enable the button regardless of success or failure
+                    document.getElementById('extractBtn').disabled = false;
+                    document.getElementById('extractBtn').innerHTML = 'Extract Design Data';
+                }
             }
 
             if (msg.type === 'error') {
