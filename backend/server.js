@@ -1,6 +1,7 @@
 // server.js - Enhanced Express Backend Server
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
 const mongoose = require('mongoose');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { Octokit } = require('@octokit/rest');
@@ -51,8 +52,9 @@ const Project = mongoose.model('Project', ProjectSchema);
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const modelName = 'gemini-2.5-flash';
 const flashModel = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
+    model: modelName,
 });
 
 // Helper Functions
@@ -60,6 +62,18 @@ function parseRepoUrl(repoUrl) {
     const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
     if (!match) throw new Error('Invalid GitHub repository URL');
     return { owner: match[1], repo: match[2].replace('.git', '') };
+}
+
+async function logUsageToCSV(usage, figmaFileName, frameId) {
+    const filename = 'usage_log.csv';
+    const header = 'Timestamp,Figma File,Frame,Model,Prompt Tokens,Response Tokens,Total Tokens\n';
+    const row = `${new Date().toISOString()},"${figmaFileName}","${frameId}","${modelName}",${usage.promptTokenCount},${usage.candidatesTokenCount},${usage.totalTokenCount}\n`;
+
+    if (!fs.existsSync(filename)) {
+        fs.writeFileSync(filename, header);
+    }
+    
+    fs.appendFileSync(filename, row);
 }
 
 async function getRepoContext(octokit, owner, repo, branch) {
@@ -310,6 +324,9 @@ ${framework === 'angular' ? `
 ### COLOR EXTRACTION RULES
 Parse the design data's color palette and map to ${framework === 'react-native' ? 'StyleSheet constants' : 'Tailwind config or inline hex values'}:
 - If design has primary color #155dfc → Use consistently throughout
+- **STRICT COLOR FORMAT:** You MUST use the exact HEX codes provided in designData (e.g., #155dfc). 
+- **NO CONVERSION:** Do NOT convert HEX to rgb(), rgba(), or hsl().
+- If a color requires opacity, use HEX with alpha channel (e.g., #155dfc80) or Tailwind opacity utilities (e.g., bg-[#155dfc]/50).
 - Extract all colors from designData.designSystem.colors
 
 ### TYPOGRAPHY RULES
@@ -323,14 +340,24 @@ Parse typography from designData.designSystem.typography:
 3. **No Explanations:** ONLY code, no markdown explanations before or after
 4. **Version Compliance:** Ensure all syntax matches ${versionInfo.framework}
 5. **Integration Ready:** Code should work immediately when added to the repository
+6. **Data Integrity:** Maintain exact HEX color values from designData; conversion to RGB/HSL is strictly forbidden.
 
 Generate the production-ready code now:`;
 }
 
-async function generateWithRetry(model, prompt, maxRetries = 4) {
+async function generateWithRetry(model, prompt,figmaFileId,frameId, maxRetries = 4) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            return await model.generateContent(prompt);
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+
+            // Extract usage metadata
+            const usage = response.usageMetadata;
+
+            // Append to CSV
+            await logUsageToCSV(usage,figmaFileId,frameId);
+
+            return response.text();        
         } catch (err) {
             const isOverload = err.status === 503 || err.message?.includes('503');
 
@@ -353,8 +380,9 @@ app.get('/api/health', (req, res) => {
 
 app.post('/api/extract', async (req, res) => {
     try {
-        const { designData, figmaFileId } = req.body;
-
+        const { designData} = req.body;
+        figmaFileId = designData?.metadata?.figmaFileId;
+        console.log('Received extract request for Figma File ID:', figmaFileId);
         if (!designData) {
             return res.status(400).json({ error: 'Design data is required' });
         }
@@ -428,16 +456,15 @@ app.post('/api/generate', async (req, res) => {
 
         const prompt = generateEnhancedPrompt(designData, framework, repoContext, existingFiles);
 
-        const result = await generateWithRetry(flashModel, prompt);
-        const response = await result.response;
-        let generatedCode = response.text();
+        let generatedCode = await generateWithRetry(flashModel, prompt,designData.metadata.figmaFileId,designData.metadata.frameId);
+
 
         generatedCode = generatedCode.replace(/```(?:typescript|tsx|jsx|javascript|ts|js)?\n?/g, '').replace(/```\s*$/g, '').trim();
-
+        console.log('Cleaned generated code:', generatedCode);
         const project = await Project.findOne({
             figmaFileId: designData.metadata.figmaFileId,
         });
-
+        console.log('Project found for updating code:', project ? project._id : 'None');
         if (project) {
             if (repoContext) {
                 project.repoStructure = repoContext;

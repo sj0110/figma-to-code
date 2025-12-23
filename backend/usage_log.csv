@@ -1,0 +1,11 @@
+Timestamp,Figma File,Frame,Model,Prompt Tokens,Response Tokens,Total Tokens
+2025-12-23T07:59:01.700Z,"lj8xuiermnmjh48tnb","1:2","gemini-2.5-flash",27826,6362,48243
+2025-12-23T08:05:11.519Z,"lj8xuiermnmjh48tnb","7:72","gemini-2.5-flash",39218,50822,104750
+2025-12-23T09:24:25.648Z,"lj8xuiermnmjh48tnb","1:2","gemini-2.5-flash",27949,4579,45758
+2025-12-23T09:28:42.538Z,"lj8xuiermnmjh48tnb","7:72","gemini-2.5-flash",39341,7947,61108
+2025-12-23T10:07:55.877Z,"lj8xuiermnmjh48tnb","7:72","gemini-2.5-flash",39341,5711,58568
+2025-12-23T10:22:19.822Z,"lj8xuiermnmjh48tnb","7:72","gemini-2.5-flash",39341,10096,65966
+2025-12-23T10:40:03.534Z,"lj8xuiermnmjh48tnb","7:72","gemini-2.5-flash",39341,5742,60711
+2025-12-23T11:46:49.823Z,"lj8xuiermnmjh48tnb","7:72","gemini-2.5-flash",39341,6399,69821
+2025-12-23T11:54:28.129Z,"lj8xuiermnmjh48tnb","7:72","gemini-2.5-flash",39341,7016,59000
+2025-12-23T11:58:03.795Z,"lj8xuiermnmjh48tnb","7:72","gemini-2.5-flash",39341,5606,50933
